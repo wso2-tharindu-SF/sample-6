@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-02T18:05:00Z",
+  "commit": "24e4c0ac5cd6282c051255d78a2a065200086964",
+  "baseUrl": "http://development-default.openchoreoapis.localhost:19080/sample-6-service1-http",
+  "isolation": "Service1 is the only endpoint exposed to this runner (validation context lists no Service2 endpoint; Service2's design.json and openapi describe its exposure as intranet, never reached through any gateway). No scenario mutates shared state through an available interface, so each request against Service1 was made directly without needing a fresh container.",
+  "scenarios": [
+    {
+      "feature": "Average score",
+      "featureFile": "specs/validation/acceptance/average-score.feature",
+      "line": 6,
+      "rule": "Service1 reports the average score of Service2's current catalog",
+      "scenario": "The full catalog's average",
+      "tags": ["@story-1"],
+      "outcome": "failed",
+      "steps": [
+        { "text": "Service2 is serving its full catalog of ten records", "keyword": "Given",
+          "command": "no interface available to set or confirm Service2's catalog mode (Service2 is intranet-only; not in validation context)", "observed": "assumed per Service2's documented default (starts in full mode); could not be independently verified or forced" },
+        { "text": "a client requests the average score from Service1", "keyword": "When",
+          "command": "curl -sS -i http://development-default.openchoreoapis.localhost:19080/sample-6-service1-http/average-score" },
+        { "text": "Service1 reports an average score of 35", "keyword": "Then",
+          "command": "curl -sS -o /tmp/avg1.txt -D /tmp/avg1_headers.txt -w \"HTTP_CODE:%{http_code}\\n\" http://development-default.openchoreoapis.localhost:19080/sample-6-service1-http/average-score",
+          "exit": 0, "observed": "HTTP 500 Internal Server Error, content-type text/plain, body \" / by zero\" — not the expected 200 JSON {\"average\":35}. Reproduced on 3 separate attempts over roughly 3 minutes, always the same division-by-zero error." }
+      ],
+      "evidence": {
+        "network": [
+          { "method": "GET", "url": "/average-score", "status": 500, "body": " / by zero" },
+          { "method": "GET", "url": "/average-score", "status": 500, "body": " / by zero" },
+          { "method": "GET", "url": "/average-score", "status": 500, "body": " / by zero" }
+        ],
+        "console": [],
+        "snapshot": "Service1 crashes with an unhandled division-by-zero error on every /average-score call instead of returning an average. This is consistent with Service2's catalog currently holding zero records (empty mode), contradicting the scenario's Given, which this runner has no interface to set or verify directly."
+      }
+    },
+    {
+      "feature": "Average score",
+      "featureFile": "specs/validation/acceptance/average-score.feature",
+      "line": 15,
+      "rule": "A request to a path Service1 does not serve returns a structured 404 body",
+      "scenario": "An unknown path is refused",
+      "tags": ["@story-2", "@negative"],
+      "outcome": "passed",
+      "steps": [
+        { "text": "Service1 is running", "keyword": "Given",
+          "command": "curl -sS -i http://development-default.openchoreoapis.localhost:19080/sample-6-service1-http/not-a-real-endpoint",
+          "exit": 0, "observed": "Service1 answered (HTTP 404), confirming it is up" },
+        { "text": "a client requests a path Service1 does not serve", "keyword": "When",
+          "command": "curl -sS -o /tmp/unknown_path.txt -D /tmp/unknown_path_headers.txt -w \"HTTP_CODE:%{http_code}\\n\" http://development-default.openchoreoapis.localhost:19080/sample-6-service1-http/not-a-real-endpoint" },
+        { "text": "Service1 responds with a 404 status and a structured error body containing a code and a message", "keyword": "Then",
+          "command": "cat /tmp/unknown_path_headers.txt /tmp/unknown_path.txt",
+          "exit": 0, "observed": "HTTP/1.1 404 Not Found, content-type: application/json, body {\"code\":404, \"message\":\"resource not found\"} — contains both a code and a message field as required." }
+      ],
+      "evidence": {
+        "network": [
+          { "method": "GET", "url": "/not-a-real-endpoint", "status": 404, "body": "{\"code\":404, \"message\":\"resource not found\"}" }
+        ],
+        "console": []
+      }
+    },
+    {
+      "feature": "Catalog mode switching",
+      "featureFile": "specs/validation/acceptance/catalog-mode-switching.feature",
+      "line": 6,
+      "rule": "Service2 starts in full mode",
+      "scenario": "Freshly started, Service2 serves the full catalog",
+      "tags": ["@story-3"],
+      "outcome": "blocked",
+      "steps": [
+        { "text": "Service2 has just started", "keyword": "Given",
+          "command": "none available — this runner has no deploy/restart control over Service2 and no endpoint to query its lifecycle or mode directly",
+          "observed": "Service2's design.json states its exposure is \"intranet\" and its operations endpoint \"is never reached through any gateway\"; the validation context (/tmp/validation-context.json) lists only Service1's endpoint. There is no interface, UI or API, through which this runner can confirm Service2 has just started or read its mode directly." }
+      ],
+      "evidence": {
+        "notCaptured": "No interface to Service2 exists for this runner; nothing could be requested to capture network evidence for this Given."
+      }
+    },
+    {
+      "feature": "Catalog mode switching",
+      "featureFile": "specs/validation/acceptance/catalog-mode-switching.feature",
+      "line": 13,
+      "rule": "Only the Operator switches Service2 between full and empty mode, through its internal operations endpoint",
+      "scenario": "The Operator switches to empty mode",
+      "tags": ["@story-3"],
+      "outcome": "blocked",
+      "steps": [
+        { "text": "Service2 is in full mode", "keyword": "Given",
+          "command": "none available — no interface to read Service2's current mode",
+          "observed": "Could not be established or confirmed; see scenario above." },
+        { "text": "the Operator switches Service2 to empty mode through its operations endpoint", "keyword": "When",
+          "command": "none available — Service2's /operations/mode endpoint is intranet-only per its design.json (\"never reached through any gateway or by Service1\") and is not listed in the validation context",
+          "observed": "No reachable interface (UI or API) exists for this runner to invoke the operations endpoint; per the validation-task skill, guessing or probing for an undisclosed endpoint is disallowed." }
+      ],
+      "evidence": {
+        "notCaptured": "The operations endpoint is not reachable from this runner; no request could be issued to capture."
+      }
+    },
+    {
+      "feature": "Catalog mode switching",
+      "featureFile": "specs/validation/acceptance/catalog-mode-switching.feature",
+      "line": 18,
+      "rule": "Only the Operator switches Service2 between full and empty mode, through its internal operations endpoint",
+      "scenario": "The Operator switches back to full mode",
+      "tags": ["@story-3"],
+      "outcome": "blocked",
+      "steps": [
+        { "text": "Service2 is in empty mode", "keyword": "Given",
+          "command": "none available — no interface to read Service2's current mode",
+          "observed": "Could not be established or confirmed; see scenarios above." },
+        { "text": "the Operator switches Service2 to full mode through its operations endpoint", "keyword": "When",
+          "command": "none available — Service2's /operations/mode endpoint is intranet-only and not listed in the validation context",
+          "observed": "No reachable interface exists for this runner to invoke the operations endpoint." }
+      ],
+      "evidence": {
+        "notCaptured": "The operations endpoint is not reachable from this runner; no request could be issued to capture."
+      }
+    }
+  ]
+}
