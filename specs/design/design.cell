@@ -1,0 +1,8 @@
+title sample-6
+
+component service1 as "Service1" service
+component service2 as "Service2" service
+
+north -> service1
+
+service1 -> service2
