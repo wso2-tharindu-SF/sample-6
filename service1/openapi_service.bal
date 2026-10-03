@@ -12,13 +12,6 @@ service / on ep0 {
     #
     # + return - The computed average, or an error fetching service2's catalog
     resource function get average\-score() returns inline_response_200|http:InternalServerError {
-        service2:Client|error service2Client = getService2Client();
-        if service2Client is error {
-            log:printError("service2 dependency URL is not usable", 'error = service2Client);
-            ErrorPayload errorBody = {code: 502, message: "service2 dependency unavailable"};
-            return <http:InternalServerError>{body: errorBody};
-        }
-
         int totalScore = 0;
         int recordCount = 0;
         int currentOffset = 0;
@@ -48,7 +41,7 @@ service / on ep0 {
         }
 
         log:printInfo("computed average score", recordCount = recordCount);
-        int average = recordCount == 0 ? 0 : totalScore / recordCount;
+        int average = totalScore / recordCount;
         return {average: average};
     }
 
