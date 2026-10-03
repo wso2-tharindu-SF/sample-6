@@ -26,13 +26,13 @@ a User, and never reachable through Service1 or any user-facing surface.
 ## User Stories
 
 1. As a User, I want to call Service1 and get the average score of Service2's current
- catalog, so that I get one dependable aggregate number without reading raw records
- myself.
+catalog, so that I get one dependable aggregate number without reading raw records
+myself.
 2. As a User, I want a request to a path Service1 does not serve to return a structured
- 404 body, so that I can tell a mistaken request apart from a valid response.
+404 body, so that I can tell a mistaken request apart from a valid response.
 3. As an Operator, I want to switch Service2 between full mode and empty mode through
- its internal operations endpoint, so that I can exercise both catalog states when
- testing the system.
+its internal operations endpoint, so that I can exercise both catalog states when
+testing the system.
 
 ## Product Decisions
 
